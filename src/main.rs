@@ -102,6 +102,7 @@ fn get_config_path(config: Option<PathBuf>) -> Result<PathBuf> {
     return Ok(loc);
 }
 
+#[derive(Debug)]
 enum RepoStatus {
     Clean,
     Dirty,
@@ -124,29 +125,25 @@ enum RepoStatus {
 //     }
 // }
 
-fn get_repo_status(target: &str) {
+fn get_repo_status(target: &str) -> Result<RepoStatus> {
     match Repository::open(target) {
         std::result::Result::Ok(repo) => {
-            if repo.state() == RepositoryState::Clean {
-                println!("repo is clean")
+            if repo.state() != RepositoryState::Clean {
+                return Ok(RepoStatus::Dirty);
             }
 
+            // TODO: refactor without unwrap. shame on you.
             let mut so = StatusOptions::new();
-            let statuses = repo.statuses(Some(&mut so));
-            let x = statuses.unwrap();
-            let x: Vec<StatusEntry> = x.iter().collect();
-            println!("x: {:?}", x.len());
-            // let x = statuses.unwrap().len();
-            // println!("status length: {}", x);
-            // println!("statuses...");
-            // statuses.unwrap().iter().for_each( |x| {
-            //     println!("path: {:?}, status: {}", x.path(), x.status().bits());
-            // });
+            let statuses = repo.statuses(Some(&mut so)).unwrap();
+            let statuses: Vec<StatusEntry> = statuses.iter().collect();
+            if statuses.len() == 0 {
+                return Ok(RepoStatus::Clean);
+            }
+
+            return Ok(RepoStatus::Dirty);
         },
-        std::result::Result::Err(repo) => {
-            // todo: anyhow
-            println!("wtf... {:?}", repo);
-            println!("something bad happened");
+        std::result::Result::Err(err) => {
+            return Err(anyhow!("Error while getting repo status")).context(err);
         },
     };
 }
@@ -167,8 +164,8 @@ fn main() -> Result<()> {
         }
         Operation::Status(target) => {
             println!("status target! {}", target);
-            get_repo_status(&target);
-            // get_repo_status_porcelain(&target);
+            let status = get_repo_status(&target);
+            println!("status: {:?}", status);
         }
         Operation::Push(target) => {
             println!("push target! {}", target);
