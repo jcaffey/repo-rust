@@ -1,7 +1,9 @@
 use anyhow::{anyhow, Context, Ok, Result};
 use clap::Parser;
 use git2::{Repository, RepositoryState, StatusOptions, StatusEntry};
-use std::{path::PathBuf};
+use std::path::PathBuf;
+use crate::config::Config;
+mod config;
 
 #[derive(Debug)]
 struct Cli {
@@ -97,7 +99,7 @@ fn get_config_path(config: Option<PathBuf>) -> Result<PathBuf> {
 
     let mut loc = PathBuf::from(loc);
     loc.push("repo");
-    loc.push(".repo.json");
+    loc.push("config.json");
 
     return Ok(loc);
 }
@@ -158,9 +160,15 @@ fn push_repo(target: &str) -> std::process::Output {
 
 fn main() -> Result<()> {
     let cli: Cli = CommandLineOptions::parse().try_into()?;
+    let config = Config::from_path_or_default(cli.config);
+    println!("config: {:?}", config);
 
+    // TODO: update operations to use vec of paths
+    // see operation::status
     match cli.operation {
         Operation::Open(target) => {
+            // TODO: load from config
+            // replace {{target}} with target
             let editor = std::env::var("EDITOR").expect("No $EDITOR set");
             std::process::Command::new(editor)
                 .arg("-c")
@@ -170,8 +178,11 @@ fn main() -> Result<()> {
                 .expect("failed to execute process");
         },
         Operation::Status(target) => {
-            let status = get_repo_status(&target);
-            println!("status: {:?}", status);
+            for path in config.paths_for_target(&target) {
+                let path = path.to_str().expect("invalid path");
+                let status = get_repo_status(path);
+                println!("{:?}: {path}", status);
+            }
         },
         Operation::Push(target) => {
             let output = push_repo(&target);

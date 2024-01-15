@@ -10,16 +10,23 @@ repo s|status proj|set
 repo pull proj|set
 repo push proj|set
 ```
-
+## config
 .config/repo/.repo.json:
 ```json
-"repo": {
+{
+  "repo": {
     "editor": {
-        program: "nvim",
-        arguments: "-my args"
+      "command": "nvim",
+      "args": ["-c", ":cd {{target}}"]
     },
     "sets": {
-        "key": ['path/to/proj', 'path/to/other']
+      "home": ["/Users/username/dotfiles", "/Users/username/repos/notes"]
     }
+  }
 }
+```
+
+## examples
+```sh
+cargo run -- status home
 ```
