@@ -1,0 +1,192 @@
+#!/usr/bin/env ruby
+require 'shellwords'
+
+Repo = Struct.new('Repo', :name, :path, :status) do
+  def clean?
+    status == Repo::CLEAN
+  end
+
+  def dirty?
+    status == Repo::DIRTY
+  end
+
+  def to_s
+    "#{status} - #{path}"
+  end
+end
+
+Repo::CLEAN = 'clean'.freeze
+Repo::DIRTY = 'dirty'.freeze
+
+class Program
+  def initialize(action:, set:)
+    @editor         = ENV['EDITOR'] || ENV['VISUAL'] || 'vim' # TODO: need to be able to specify preferred option for terminal or not
+    @editor_options = { # TODO: move this to ~/.reporc
+      'global'   => "${path};-c ':cd ${path}'",
+      'dotfiles' => "-c ':let g:ctrlp_show_hidden=1'"
+    }
+    @path = ENV['REPOS_PATH'] || '~/repos' # TODO: rc
+    @path = File.expand_path(@path)
+
+    # allow sets to be defined in rc
+    # hardcore set with an alias as g for now.
+    # TODO: have smart defaults and use first letter in the list if the actual name doesnt exist
+    # ex: repo o g => repo o global only when g is not specified!
+    # also, add method to build this list from config/.repo and reindex the repo path
+    @sets = {
+      'g' => ['cheat-sheets', 'dotfiles', 'notes', 'pass', 'scripts', 'snippets', 'todo']
+    }
+
+    # hardcode path for now
+    @paths = {
+      'dotfiles' => '~/dotfiles',
+      'pass' => '~/.password-store'
+    }
+
+    @action = action
+    @set    = set.map do |name|
+      if @sets.has_key?(name)
+        @sets[name].map do |name|
+          build_repo(name)
+        end
+      else
+        build_repo(name)
+      end
+    end
+
+    @set.flatten!
+
+    if self.respond_to?(action)
+      self.send(action)
+      @set.each { |repo| puts repo }
+    else
+      error("Unknown action: #{action}")
+    end
+  end
+
+  def build_repo(name)
+    Repo.new(name, path_for(name), 'unknown')
+  end
+
+  def error(msg)
+    puts "Error: #{msg}"
+  end
+
+  # all options must be in the form ${option} where option
+  # is the option to be replaced
+  #
+  # Example:
+  # -c :cd ${path}
+  #
+  # available options:
+  # path - path to repository
+  def editor_options_for(repo)
+    # NOTE: all keys need to be strings
+    # TODO: global as constant please
+    options = []
+    ['global', repo.name].each do |key|
+      if @editor_options.has_key?(key)
+        @editor_options[key].split(';').map do |line|
+          options << line.chomp.gsub(/\${path}/, repo.path)
+        end
+      end
+    end
+
+    options
+  end
+
+  def open
+    if @set.count > 1
+      error("Refusing to open #{@set.count} repos.")
+      return
+    end
+
+    # /home/jcaffey/dotfiles :let g:ctrlp_show_hidden=1
+    @editor_options = editor_options_for(@set.first).join(' ')
+    system([@editor, @editor_options].join(' '))
+  end
+  alias :o :open
+
+  def path_for(repo_name)
+    repo_name = repo_name.chomp
+    path = @paths[repo_name].nil? ? File.join(@path, repo_name) : @paths[repo_name]
+    File.expand_path(path)
+  end
+
+  def status
+    @set.each do |repo|
+      Dir.chdir(File.expand_path(repo.path)) do
+        status      = `git status`
+        clean       = status.match?(/working tree clean/i)
+        has_commits = status.match?(/ahead of/i)
+        repo.status = (clean && !has_commits) ? Repo::CLEAN : Repo::DIRTY
+      end
+    end
+  end
+  alias :s :status
+
+  def dirty
+    status
+    @set.keep_if { |r| r.dirty? }
+  end
+  alias :d :dirty
+
+  def clean
+    status
+    @set.keep_if { |r| r.clean? }
+  end
+  alias :c :clean
+
+  def push
+    status
+    @set.keep_if do |repo|
+      if repo.dirty?
+        def repo.to_s
+          "#{name} pushed to origin"
+        end
+
+        Dir.chdir(repo.path) do
+          `git add -A`
+          `git commit -m "$(curl http://whatthecommit.com/index.txt)"`
+          `git push`
+        end
+      end
+
+      repo.dirty?
+    end
+  end
+
+  def pull
+    status
+    @set.each do |repo|
+      # only pull if clean
+      if repo.clean?
+        Dir.chdir(repo.path) do
+          `git pull`
+        end
+        def repo.to_s
+          "#{name} pulled"
+        end
+      else
+        def repo.to_s
+          "#{name} is #{status} and was not pulled"
+        end
+      end
+    end
+  end
+end
+
+if ARGV.length > 0
+  # args
+  # usage:
+  # repo action dotfiles[, snippets, cheat-sheets]
+  action, *set = ARGV
+  action = action.chomp
+  if action.empty? || set.empty?
+    puts "Usage: repo action repo1[,repo2, repo3]"
+  else
+    Program.new(action:action, set: set) 
+  end
+else
+  # TODO: stream or no args
+end
