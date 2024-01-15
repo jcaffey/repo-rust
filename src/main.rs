@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use anyhow::{anyhow, Context, Ok, Result};
 use clap::Parser;
-use anyhow::{Result, anyhow, Ok, Context};
-use git2::{Repository, RepositoryState, StatusOptions};
+// use git2::{Repository, RepositoryState, StatusOptions};
+use std::{path::PathBuf, process::ExitStatus};
 
 #[derive(Debug)]
 struct Cli {
@@ -19,7 +19,7 @@ enum Operation {
 
 #[derive(Parser, Debug)]
 #[clap()]
-/// repo --config <path> <operation> <project|set> 
+/// repo --config <path> <operation> <project|set>
 pub struct CommandLineOptions {
     /// <operation> <project|set>
     pub args: Vec<String>,
@@ -52,7 +52,10 @@ impl TryFrom<Vec<String>> for Operation {
         let term = value.get(0).expect("must exist");
         if term == "open" {
             if value.len() != 2 {
-                return Err(anyhow!("open operation expects 1 arg but got {}", value.len() - 1));
+                return Err(anyhow!(
+                    "open operation expects 1 arg but got {}",
+                    value.len() - 1
+                ));
             }
 
             return Ok(Operation::Open(value.pop().expect("exists")));
@@ -60,7 +63,10 @@ impl TryFrom<Vec<String>> for Operation {
 
         if term == "status" {
             if value.len() != 2 {
-                return Err(anyhow!("status operation expects 1 arg but got {}", value.len() - 1));
+                return Err(anyhow!(
+                    "status operation expects 1 arg but got {}",
+                    value.len() - 1
+                ));
             }
 
             return Ok(Operation::Status(value.pop().expect("exists")));
@@ -68,7 +74,10 @@ impl TryFrom<Vec<String>> for Operation {
 
         if term == "push" {
             if value.len() != 2 {
-                return Err(anyhow!("push operation expects 1 arg but got {}", value.len() - 1));
+                return Err(anyhow!(
+                    "push operation expects 1 arg but got {}",
+                    value.len() - 1
+                ));
             }
 
             return Ok(Operation::Push(value.pop().expect("exists")));
@@ -84,8 +93,7 @@ fn get_config_path(config: Option<PathBuf>) -> Result<PathBuf> {
     }
 
     // TODO how does context work in anyhow?
-    let loc = std::env::var("XDG_CONFIG_HOME")
-        .context("unable to get XDG_CONFIG_HOME")?;
+    let loc = std::env::var("XDG_CONFIG_HOME").context("unable to get XDG_CONFIG_HOME")?;
 
     let mut loc = PathBuf::from(loc);
     loc.push("repo");
@@ -94,32 +102,56 @@ fn get_config_path(config: Option<PathBuf>) -> Result<PathBuf> {
     return Ok(loc);
 }
 
-fn get_repo_status(target: &str) {
-    let repo = match Repository::open(target) {
-        std::result::Result::Ok(repo) => {
-            println!("im ok");
-            println!("repo state: {:?}", repo.state());
-            if repo.state() == RepositoryState::Clean {
-                println!("repo is clean")
-            }
-
-            let index = repo.index().expect("cant open index").is_empty();
-            println!("index: {}", index);
-
-            let mut so = StatusOptions::new();
-            let statuses = repo.statuses(Some(&mut so));
-            println!("statuses...");
-            statuses.unwrap().iter().for_each( |x| {
-                println!("path: {:?}, status: {}", x.path(), x.status().bits());
-            })
-        },
-        std::result::Result::Err(repo) => {
-            // todo: anyhow
-            println!("wtf... {:?}", repo);
-            println!("something bad happened");
-        },
-    };
+enum RepoStatus {
+    Clean,
+    Dirty,
 }
+
+fn get_repo_status_porcelain(target: &str) {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(target)
+        .arg("status")
+        .arg("--porcelain")
+        .output()
+        .expect("could not run git status");
+
+    println!("output: {:?}", output);
+    if output.stdout.is_empty() {
+       println!("its clean!"); 
+    } else {
+       println!("its dirty!"); 
+    }
+}
+
+// fn get_repo_status(target: &str) {
+//     match Repository::open(target) {
+//         std::result::Result::Ok(repo) => {
+//             println!("im ok");
+//             println!("repo state: {:?}", repo.state());
+//             if repo.state() == RepositoryState::Clean {
+//                 println!("repo is clean")
+//             }
+//
+//             let index = repo.index().expect("cant open index").is_empty();
+//             println!("index: {}", index);
+//
+//             // this *usually* works to make sure a branch is clean
+//             // but it's safer to just use git status --porcelain
+//             let mut so = StatusOptions::new();
+//             let statuses = repo.statuses(Some(&mut so));
+//             println!("statuses...");
+//             statuses.unwrap().iter().for_each( |x| {
+//                 println!("path: {:?}, status: {}", x.path(), x.status().bits());
+//             });
+//         },
+//         std::result::Result::Err(repo) => {
+//             // todo: anyhow
+//             println!("wtf... {:?}", repo);
+//             println!("something bad happened");
+//         },
+//     };
+// }
 
 fn main() -> Result<()> {
     let cli: Cli = CommandLineOptions::parse().try_into()?;
@@ -134,17 +166,16 @@ fn main() -> Result<()> {
                 .wait()
                 .expect("failed to execute process");
             println!("output: {:?}", output);
-        },
+        }
         Operation::Status(target) => {
             println!("status target! {}", target);
-            get_repo_status(&target);
-        },
+            get_repo_status_porcelain(&target);
+        }
         Operation::Push(target) => {
             println!("push target! {}", target);
-        },
+        }
         _ => todo!(),
     }
 
     return Ok(());
 }
-
