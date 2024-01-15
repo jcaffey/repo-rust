@@ -107,12 +107,6 @@ fn get_repo_status(target: &str) {
             println!("index: {}", index);
 
             let mut so = StatusOptions::new();
-            // so.include_untracked(true);
-            // so.include_ignored(true);
-            // so.include_unmodified(true);
-            // so.include_unreadable(true);
-            // so.include_unreadable_as_untracked(true);
-
             let statuses = repo.statuses(Some(&mut so));
             println!("statuses...");
             statuses.unwrap().iter().for_each( |x| {
