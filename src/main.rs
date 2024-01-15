@@ -137,22 +137,21 @@ fn main() -> Result<()> {
     match cli.operation {
         Operation::Open(target) => {
             let editor = std::env::var("EDITOR").expect("No $EDITOR set");
-            let output = std::process::Command::new(editor)
+            std::process::Command::new(editor)
                 .arg("-c")
                 .arg(format!(":cd {}", target))
                 .spawn()?
                 .wait()
                 .expect("failed to execute process");
-            println!("output: {:?}", output);
-        }
+        },
         Operation::Status(target) => {
             println!("status target! {}", target);
             let status = get_repo_status(&target);
             println!("status: {:?}", status);
-        }
+        },
         Operation::Push(target) => {
             println!("push target! {}", target);
-        }
+        },
         _ => todo!(),
     }
 
