@@ -131,6 +131,31 @@ fn get_repo_status(target: &str) -> Result<RepoStatus> {
     };
 }
 
+fn push_repo(target: &str) -> std::process::Output {
+    std::process::Command::new("git")
+        .arg("add")
+        .arg("-A")
+        .spawn()
+        .expect(format!("failed to stage all files for repo {}", target).as_str());
+
+    std::process::Command::new("git")
+        .arg("commit")
+        .arg("-m")
+        .arg("Default commit message from repo")
+        .spawn()
+        .expect(format!("failed to commit files for repo {}", target).as_str());
+
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(target)
+        .arg("push")
+        .arg("--porcelain")
+        .output()
+        .expect("failed to execute process");
+
+    return output;
+}
+
 fn main() -> Result<()> {
     let cli: Cli = CommandLineOptions::parse().try_into()?;
 
@@ -145,12 +170,12 @@ fn main() -> Result<()> {
                 .expect("failed to execute process");
         },
         Operation::Status(target) => {
-            println!("status target! {}", target);
             let status = get_repo_status(&target);
             println!("status: {:?}", status);
         },
         Operation::Push(target) => {
-            println!("push target! {}", target);
+            let output = push_repo(&target);
+            println!("output: {:?}", output);
         },
         _ => todo!(),
     }
