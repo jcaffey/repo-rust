@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Ok, Result};
 use clap::Parser;
-// use git2::{Repository, RepositoryState, StatusOptions};
-use std::{path::PathBuf, process::ExitStatus};
+use git2::{Repository, RepositoryState, StatusOptions, StatusEntry};
+use std::{path::PathBuf};
 
 #[derive(Debug)]
 struct Cli {
@@ -107,51 +107,49 @@ enum RepoStatus {
     Dirty,
 }
 
-fn get_repo_status_porcelain(target: &str) {
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(target)
-        .arg("status")
-        .arg("--porcelain")
-        .output()
-        .expect("could not run git status");
-
-    println!("output: {:?}", output);
-    if output.stdout.is_empty() {
-       println!("its clean!"); 
-    } else {
-       println!("its dirty!"); 
-    }
-}
-
-// fn get_repo_status(target: &str) {
-//     match Repository::open(target) {
-//         std::result::Result::Ok(repo) => {
-//             println!("im ok");
-//             println!("repo state: {:?}", repo.state());
-//             if repo.state() == RepositoryState::Clean {
-//                 println!("repo is clean")
-//             }
+// fn get_repo_status_porcelain(target: &str) {
+//     let output = std::process::Command::new("git")
+//         .arg("-C")
+//         .arg(target)
+//         .arg("status")
+//         .arg("--porcelain")
+//         .output()
+//         .expect("could not run git status");
 //
-//             let index = repo.index().expect("cant open index").is_empty();
-//             println!("index: {}", index);
-//
-//             // this *usually* works to make sure a branch is clean
-//             // but it's safer to just use git status --porcelain
-//             let mut so = StatusOptions::new();
-//             let statuses = repo.statuses(Some(&mut so));
-//             println!("statuses...");
-//             statuses.unwrap().iter().for_each( |x| {
-//                 println!("path: {:?}, status: {}", x.path(), x.status().bits());
-//             });
-//         },
-//         std::result::Result::Err(repo) => {
-//             // todo: anyhow
-//             println!("wtf... {:?}", repo);
-//             println!("something bad happened");
-//         },
-//     };
+//     println!("output: {:?}", output);
+//     if output.stdout.is_empty() {
+//        println!("its clean!"); 
+//     } else {
+//        println!("its dirty!"); 
+//     }
 // }
+
+fn get_repo_status(target: &str) {
+    match Repository::open(target) {
+        std::result::Result::Ok(repo) => {
+            if repo.state() == RepositoryState::Clean {
+                println!("repo is clean")
+            }
+
+            let mut so = StatusOptions::new();
+            let statuses = repo.statuses(Some(&mut so));
+            let x = statuses.unwrap();
+            let x: Vec<StatusEntry> = x.iter().collect();
+            println!("x: {:?}", x.len());
+            // let x = statuses.unwrap().len();
+            // println!("status length: {}", x);
+            // println!("statuses...");
+            // statuses.unwrap().iter().for_each( |x| {
+            //     println!("path: {:?}, status: {}", x.path(), x.status().bits());
+            // });
+        },
+        std::result::Result::Err(repo) => {
+            // todo: anyhow
+            println!("wtf... {:?}", repo);
+            println!("something bad happened");
+        },
+    };
+}
 
 fn main() -> Result<()> {
     let cli: Cli = CommandLineOptions::parse().try_into()?;
@@ -169,7 +167,8 @@ fn main() -> Result<()> {
         }
         Operation::Status(target) => {
             println!("status target! {}", target);
-            get_repo_status_porcelain(&target);
+            get_repo_status(&target);
+            // get_repo_status_porcelain(&target);
         }
         Operation::Push(target) => {
             println!("push target! {}", target);
