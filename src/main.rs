@@ -108,23 +108,6 @@ enum RepoStatus {
     Dirty,
 }
 
-// fn get_repo_status_porcelain(target: &str) {
-//     let output = std::process::Command::new("git")
-//         .arg("-C")
-//         .arg(target)
-//         .arg("status")
-//         .arg("--porcelain")
-//         .output()
-//         .expect("could not run git status");
-//
-//     println!("output: {:?}", output);
-//     if output.stdout.is_empty() {
-//        println!("its clean!"); 
-//     } else {
-//        println!("its dirty!"); 
-//     }
-// }
-
 fn get_repo_status(target: &str) -> Result<RepoStatus> {
     match Repository::open(target) {
         std::result::Result::Ok(repo) => {
