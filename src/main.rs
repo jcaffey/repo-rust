@@ -121,7 +121,8 @@ fn get_repo_status(target: &str) {
         },
         std::result::Result::Err(repo) => {
             // todo: anyhow
-            println!("im not ok");
+            println!("wtf... {:?}", repo);
+            println!("something bad happened");
         },
     };
 }
