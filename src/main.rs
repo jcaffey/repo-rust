@@ -133,6 +133,7 @@ fn get_repo_status(target: &str) -> Result<RepoStatus> {
     };
 }
 
+// TODO: this needs work. it seems to work on second try.
 fn push_repo(target: &str) -> std::process::Output {
     std::process::Command::new("git")
         .arg("add")
