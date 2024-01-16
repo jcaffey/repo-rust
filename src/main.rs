@@ -183,8 +183,10 @@ fn main() -> Result<()> {
             }
         },
         Operation::Push(target) => {
-            let output = push_repo(&target);
-            println!("output: {:?}", output);
+            for path in config.get_paths_for_target(&target) {
+                let output = push_repo(path.to_str().unwrap());
+                println!("output: {:?}", output);
+            }
         },
         _ => todo!(),
     }
