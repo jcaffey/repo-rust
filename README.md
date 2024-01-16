@@ -15,12 +15,18 @@ repo push proj|set
 ```json
 {
   "repo": {
+    "aliases": {
+        "dotfiles": "/some/path/to/dotfiles"
+    },
     "editor": {
       "command": "nvim",
       "args": ["-c", ":cd {{target}}"]
     },
     "sets": {
       "home": ["/Users/username/dotfiles", "/Users/username/repos/notes"]
+    },
+    "settings": {
+        "root": "path/to/my-repos"
     }
   }
 }
@@ -28,5 +34,12 @@ repo push proj|set
 
 ## examples
 ```sh
-cargo run -- status home
+cargo run -- s home
 ```
+
+## todo
+- [ ] update help to include aliases for open and status
+- [ ] show help on uknown argument
+- [x] execute editor command with args
+- [ ] update examples
+- [ ] explain sets, dir, path, and aliases
