@@ -52,7 +52,7 @@ impl TryFrom<Vec<String>> for Operation {
         }
 
         let term = value.get(0).expect("must exist");
-        if term == "open" {
+        if term == "open" || term == "o" {
             if value.len() != 2 {
                 return Err(anyhow!(
                     "open operation expects 1 arg but got {}",
@@ -63,7 +63,7 @@ impl TryFrom<Vec<String>> for Operation {
             return Ok(Operation::Open(value.pop().expect("exists")));
         }
 
-        if term == "status" {
+        if term == "status" || term == "s" {
             if value.len() != 2 {
                 return Err(anyhow!(
                     "status operation expects 1 arg but got {}",
@@ -117,9 +117,8 @@ fn get_repo_status(target: &str) -> Result<RepoStatus> {
                 return Ok(RepoStatus::Dirty);
             }
 
-            // TODO: refactor without unwrap. shame on you.
             let mut so = StatusOptions::new();
-            let statuses = repo.statuses(Some(&mut so)).unwrap();
+            let statuses = repo.statuses(Some(&mut so)).expect("statuses should exist");
             let statuses: Vec<StatusEntry> = statuses.iter().collect();
             if statuses.len() == 0 {
                 return Ok(RepoStatus::Clean);
@@ -164,22 +163,20 @@ fn main() -> Result<()> {
     let config = Config::from_path_or_default(cli.config);
     println!("config: {:?}", config);
 
-    // TODO: update operations to use vec of paths
-    // see operation::status
     match cli.operation {
         Operation::Open(target) => {
-            // TODO: load from config
-            // replace {{target}} with target
-            let editor = std::env::var("EDITOR").expect("No $EDITOR set");
-            std::process::Command::new(editor)
-                .arg("-c")
-                .arg(format!(":cd {}", target))
-                .spawn()?
-                .wait()
-                .expect("failed to execute process");
+            let target = config.get_target_type(&target);
+            let editor = config.get_editor();
+            let args   = config.get_editor_args(&target);
+
+            let mut process = std::process::Command::new(editor);
+            process.args(args);
+            process.spawn()?
+                   .wait()
+                   .expect("failed to execute process");
         },
         Operation::Status(target) => {
-            for path in config.paths_for_target(&target) {
+            for path in config.get_paths_for_target(&target) {
                 let path = path.to_str().expect("invalid path");
                 let status = get_repo_status(path);
                 println!("{:?}: {path}", status);
