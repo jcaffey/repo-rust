@@ -43,3 +43,5 @@ cargo run -- s home
 - [x] execute editor command with args
 - [ ] update examples
 - [ ] explain sets, dir, path, and aliases
+- [ ] implement pull
+- [ ] cleanup status output
