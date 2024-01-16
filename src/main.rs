@@ -85,6 +85,17 @@ impl TryFrom<Vec<String>> for Operation {
             return Ok(Operation::Status(value.pop().expect("exists")));
         }
 
+        if term == "pull" {
+            if value.len() != 2 {
+                return Err(anyhow!(
+                    "pull operation expects 1 arg but got {}",
+                    value.len() - 1
+                ));
+            }
+
+            return Ok(Operation::Pull(value.pop().expect("exists")));
+        }
+
         if term == "push" {
             if value.len() != 2 {
                 return Err(anyhow!(
@@ -141,6 +152,17 @@ fn get_repo_status(target: &str) -> Result<RepoStatus> {
             return Err(anyhow!("Error while getting repo status")).context(err);
         },
     };
+}
+
+fn pull_repo(target: &str) -> std::process::Output {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(target)
+        .arg("pull")
+        .output()
+        .expect("failed to execute process");
+
+    return output;
 }
 
 // TODO: this needs work. it seems to work on second try.
@@ -204,6 +226,12 @@ fn main() -> Result<()> {
                 let path = path.to_str().expect("invalid path");
                 let status = get_repo_status(path);
                 println!("{:?}: {path}", status);
+            }
+        },
+        Operation::Pull(target) => {
+            for path in config.get_paths_for_target(&target) {
+                let output = pull_repo(path.to_str().unwrap());
+                println!("output: {:?}", output);
             }
         },
         Operation::Push(target) => {
