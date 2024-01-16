@@ -161,7 +161,6 @@ fn push_repo(target: &str) -> std::process::Output {
 fn main() -> Result<()> {
     let cli: Cli = CommandLineOptions::parse().try_into()?;
     let config = Config::from_path_or_default(cli.config);
-    println!("config: {:?}", config);
 
     match cli.operation {
         Operation::Open(target) => {

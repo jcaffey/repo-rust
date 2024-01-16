@@ -143,7 +143,6 @@ impl Config {
             let contents = std::fs::read_to_string(&path);
             let contents = contents.unwrap_or("{\"config\":{}}".into());
             let data = serde_json::from_str(&contents);
-            println!("data: {:?}", data);
             let data = data.unwrap_or(default_data());
 
             return Config {
