@@ -187,7 +187,9 @@ fn main() -> Result<()> {
                 println!("output: {:?}", output);
             }
         },
-        _ => todo!(),
+        Operation::Pull(_target) => {
+            todo!();
+        }
     }
 
     return Ok(());
