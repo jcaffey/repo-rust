@@ -2,8 +2,7 @@ use anyhow::{anyhow, Context, Ok, Result};
 use clap::Parser;
 use git2::{Repository, RepositoryState, StatusOptions, StatusEntry};
 use std::path::PathBuf;
-use crate::config::Config;
-mod config;
+use repo::config::Config;
 
 #[derive(Debug)]
 struct Cli {
