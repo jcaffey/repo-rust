@@ -14,6 +14,7 @@ struct Cli {
 #[derive(Debug)]
 enum Operation {
     Open(String),
+    List,
     Status(String),
     Pull(String),
     Push(String),
@@ -61,6 +62,17 @@ impl TryFrom<Vec<String>> for Operation {
             }
 
             return Ok(Operation::Open(value.pop().expect("exists")));
+        }
+
+        if term == "list" || term == "l" {
+            if value.len() != 1 {
+                return Err(anyhow!(
+                    "list operation expects 1 arg but got {}",
+                    value.len() - 1
+                ));
+            }
+
+            return Ok(Operation::List);
         }
 
         if term == "status" || term == "s" {
@@ -173,6 +185,20 @@ fn main() -> Result<()> {
             process.spawn()?
                    .wait()
                    .expect("failed to execute process");
+        },
+        Operation::List => {
+            println!("root: {}", config.get_root_path().unwrap_or(&"".to_string()));
+            println!();
+            println!("Aliases:");
+            for alias in config.get_aliases() {
+                println!("{:?}", alias);
+            }
+
+            println!();
+            println!("Sets:");
+            for set in config.get_sets() {
+                println!("{:?}", set);
+            }
         },
         Operation::Status(target) => {
             for path in config.get_paths_for_target(&target) {

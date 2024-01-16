@@ -66,18 +66,14 @@ impl Config {
         }
 
         let target_path: &PathBuf = match target {
-            TargetType::Alias(path) => {
-                path
-            },
-            TargetType::Path(path) => {
+            TargetType::Alias(path) |
+            TargetType::Path(path)  | 
+            TargetType::Dir(path) => {
                 path
             },
             TargetType::Set(paths) => {
                 // we only support one path for right now
                 paths.first().expect("expected at least one path in set")
-            },
-            TargetType::Dir(path) => {
-                path
             },
         };
 
@@ -90,6 +86,18 @@ impl Config {
 
     fn get_path_for_alias(&self, alias: &String) -> Option<&PathBuf> {
         return self.data.repo.aliases.get(alias);
+    }
+
+    pub fn get_aliases(&self) -> &HashMap<String, PathBuf> {
+        return &self.data.repo.aliases;
+    }
+
+    pub fn get_root_path(&self) -> Option<&String> {
+        return self.data.repo.settings.get("root");
+    }
+
+    pub fn get_sets(&self) -> &HashMap<String, Vec<PathBuf>> {
+        return &self.data.repo.sets;
     }
 
     pub fn get_paths_for_target(&self, target: &String) -> Vec<PathBuf> {

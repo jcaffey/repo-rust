@@ -2,16 +2,18 @@
 
 ## usage
 
-specify -c or --config for config file path otherwise default config is used
+specify -c or --config for config file path
+default is $XDG_HOME/repo/config.json
 
 ```
 repo o|open proj|set
 repo s|status proj|set
 repo pull proj|set
 repo push proj|set
+
 ```
 ## config
-.config/repo/.repo.json:
+.config/repo/config.json:
 ```json
 {
   "repo": {
@@ -38,6 +40,10 @@ cargo run -- s home
 ```
 
 ## todo
+- [ ] prettyify output for operations
+- [ ] document use of {{target}} in editor args
+- [ ] add list command
+- [ ] split up project
 - [ ] update help to include aliases for open and status
 - [ ] show help on uknown argument
 - [x] execute editor command with args
