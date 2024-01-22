@@ -127,7 +127,13 @@ impl Config {
 
         // Path
         if let Some(_) = target.find("/") {
-            return TargetType::Path(PathBuf::from(target));
+            let t = target.to_string();
+            let path = std::path::Path::new(&t);
+
+            if path.exists() {
+                // if path doesnt exist we assume it's a partial path and dir will handle it
+                return TargetType::Path(PathBuf::from(target));
+            }
         } 
 
         // Set
